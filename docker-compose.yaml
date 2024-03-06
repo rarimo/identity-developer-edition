@@ -1,0 +1,60 @@
+version: "3.3"
+
+services:
+  vault:
+    image: vault:1.13.3
+    container_name: vault
+    ports:
+      - "8201:8201"
+    environment:
+      VAULT_ADDR: 'http://0.0.0.0:8201'
+      VAULT_LOCAL_CONFIG: '{"listener": [{"tcp":{"address": "0.0.0.0:8201","tls_disable":"1", "tls_key_file":"/data/vault-volume/key.pem"}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h"}, "ui": true}'
+      VAULT_DEV_ROOT_TOKEN_ID: '00000000-0000-0000-0000-000000000000'
+      VAULT_TOKEN: '00000000-0000-0000-0000-000000000000'
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-volume:/data
+
+  passport-identity-provider-db:
+    depends_on:
+      vault:
+        condition: service_started
+    image: postgres:13.6
+    hostname: passport-identity-provider-db
+    container_name: passport-identity-provider-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=passport-identity-provider
+      - POSTGRES_PASSWORD=passport-identity-provider
+      - POSTGRES_DB=passport-identity-provider
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - 5435:5432
+    volumes:
+      - passport-identity-provider-data:/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U passport-identity-provider" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  passport-identity-provider:
+    depends_on:
+      passport-identity-provider-db:
+        condition: service_healthy
+    restart: always
+    hostname: passport-identity-provider
+    image: ghcr.io/rarimo/passport-identity-provider:v0.8.6
+    environment:
+      KV_VIPER_FILE: '/configs/config.yaml'
+      VAULT_TOKEN: 00000000-0000-0000-0000-000000000000
+    ports:
+      - "8002:80"
+    entrypoint: sh -c "identity-provider-service migrate up && identity-provider-service run service"
+    volumes:
+      - "./configs/passport-identity-provider.yaml:/configs/config.yaml"
+
+volumes:
+  vault-volume:
+  passport-identity-provider-data:

@@ -1,0 +1,38 @@
+vault:
+  address: "http://172.17.0.1:8201"
+  mount_path: "cubbyhole"
+
+network:
+  eth_rpc:
+  state_contract:
+
+verifier:
+  verification_keys_paths:
+    sha1: "./sha1_verification_key.json"
+    sha256: "./sha256_verification_key.json"
+  master_certs_path: "./masterList.dev.pem"
+  allowed_age: 18
+  registration_timeout: 1h
+
+issuer:
+  base_url: ""
+  did: ""
+  claim_type: "VotingCredential"
+  credential_schema: "https://ipfs.rarimo.com/ipfs/QmUKGTRiMjg49CFugK4i2F4q6EBXHXwvfU2ewpZmQsPhDS"
+
+log:
+  level: debug
+  disable_sentry: true
+
+db:
+  url: postgres://passport-identity-provider:passport-identity-provider@passport-identity-provider-db/passport-identity-provider?sslmode=disable
+
+listener:
+  addr: :80
+
+cop:
+  disabled: true
+  endpoint: "http://..."
+  upstream: "http://..."
+  service_name:
+  service_port: 80
